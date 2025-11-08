@@ -1,15 +1,20 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>CashReward App</title>
     
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
 <script src='//libtl.com/sdk.js' data-zone='9356525' data-sdk='show_9356525'></script>
+    <script src='//libtl.com/sdk.js' data-zone='9299851' data-sdk='show_9299851'></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* Telegram Mini Apps usually run in a dark context, but we will rely on the app's internal styles */
         body { font-family: 'Inter', sans-serif; background-color: #121212; color: #ffffff; }
         .dark-bg { background-color: #121212; }
         .card-bg { background-color: #1e1e1e; }
@@ -46,26 +51,6 @@
         <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent"></div>
     </div>
 
-    <div id="auth-section" class="min-h-screen p-6 flex-col justify-center main-page">
-        <h1 class="text-4xl font-bold text-center mb-2 text-accent">CashReward</h1>
-        <p class="text-center text-gray-400 mb-8">Login or Signup to continue</p>
-        <div id="auth-container">
-            <div id="login-view">
-                <input id="login-email" type="email" placeholder="Email" class="w-full p-3 rounded-lg input-field mb-4">
-                <input id="login-password" type="password" placeholder="Password" class="w-full p-3 rounded-lg input-field mb-4">
-                <button id="login-btn" class="w-full p-3 rounded-lg btn-accent mb-4">Login</button>
-                <p class="text-center text-gray-400">Don't have an account? <a href="#" id="show-signup" class="font-semibold text-accent">Sign Up</a></p>
-            </div>
-            <div id="signup-view" class="hidden">
-                 <input id="signup-name" type="text" placeholder="Full Name" class="w-full p-3 rounded-lg input-field mb-4">
-                <input id="signup-email" type="email" placeholder="Email" class="w-full p-3 rounded-lg input-field mb-4">
-                <input id="signup-password" type="password" placeholder="Password" class="w-full p-3 rounded-lg input-field mb-4">
-                <button id="signup-btn" class="w-full p-3 rounded-lg btn-accent mb-4">Sign Up</button>
-                <p class="text-center text-gray-400">Already have an account? <a href="#" id="show-login" class="font-semibold text-accent">Login</a></p>
-            </div>
-        </div>
-    </div>
-
     <div id="app-container" class="min-h-screen flex-col main-page">
         <header class="flex items-center justify-between p-4 sticky top-0 bg-opacity-80 backdrop-blur-md z-10 dark-bg">
             <h1 class="text-xl font-bold">CashReward</h1>
@@ -74,7 +59,7 @@
                     <i data-lucide="bell" class="w-6 h-6"></i>
                     <div id="notification-dot" class="notification-dot"></div>
                 </div>
-                <i data-lucide="user" class="w-6 h-6 cursor-pointer" onclick="navigateTo('profile-page')"></i>
+                <button onclick="closeMiniApp()" class="bg-red-600 text-white p-1 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
         </header>
 
@@ -163,10 +148,9 @@
                 <h2 class="text-xl font-bold text-center mb-4">Profile</h2>
                 <div class="flex flex-col items-center">
                     <img src="https://placehold.co/100x100/1e1e1e/ff8c00?text=U" class="rounded-full mb-2">
-                    <h2 id="profile-name" class="text-xl font-bold">User Name</h2>
-                    <p id="profile-email" class="text-gray-400">user@email.com</p>
+                    <h2 id="profile-name" class="text-xl font-bold">Guest User</h2>
+                    <p id="profile-email" class="text-gray-400">anonymous@local.com</p>
                 </div>
-                <button id="logout-btn" class="w-full mt-6 p-3 rounded-lg bg-red-600 text-white font-bold">Logout</button>
             </div>
             
             <div id="notifications-page" class="p-4 space-y-4 sub-page">
@@ -201,16 +185,23 @@
 
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let currentUser = null;
-        let userData = null;
+        let localUserId = null; // Variable for the anonymous user ID
+        let userData = {}; // Initialize as object
         let appConfig = {};
+        
+        // 3. TELEGRAM MINI APP GLOBAL VARIABLES
+        let tg = window.Telegram?.WebApp;
+        if(tg) {
+            tg.ready();
+            // Set the app's background color to match the Telegram theme
+            document.body.style.backgroundColor = tg.themeParams.bg_color || '#121212';
+            document.body.style.color = tg.themeParams.text_color || '#ffffff';
+        }
 
         const loader = document.getElementById('loader');
         const coinBalanceEl = document.getElementById('coin-balance');
@@ -225,63 +216,97 @@
         const adsLeftCountEl = document.getElementById('ads-left-count');
         const paymentDetailsContainer = document.getElementById('payment-details-container');
 
+        // Function to get or create a unique ID for the anonymous user
+        function getLocalUserId() {
+            let id = localStorage.getItem('localUserId');
+            
+            // In a Telegram Mini App, we can prioritize the Telegram user's ID
+            if (tg && tg.initDataUnsafe.user) {
+                id = `tg-${tg.initDataUnsafe.user.id}`;
+            } else if (!id) {
+                // Fallback for non-Telegram context (browser testing)
+                id = 'anon-' + crypto.randomUUID(); 
+            }
+            localStorage.setItem('localUserId', id);
+            localUserId = id;
+            return id;
+        }
+
         window.onload = () => {
             lucide.createIcons();
             setupEventListeners();
-            showMainPage('auth-section');
             loader.style.display = 'none';
-            onAuthStateChanged(auth, handleAuthStateChange);
+            initializeAppState();
+        };
+        
+        // 4. ADD GLOBAL FUNCTION TO CLOSE MINI APP
+        window.closeMiniApp = function() {
+            if (tg) {
+                tg.close();
+            } else {
+                showAlert("This button only works inside a Telegram Mini App.");
+            }
         };
 
-        async function handleAuthStateChange(user) {
-            if (user) {
-                loader.style.display = 'flex';
-                currentUser = user;
-                await fetchUserData();
-                if (userData.isBlocked) {
-                    showAlert("Your account has been blocked.");
-                    await signOut(auth);
-                    loader.style.display = 'none';
-                    return;
-                }
-                await fetchAppConfig();
-                await checkNewNotifications();
-                updateUI();
-                showMainPage('app-container');
-                navigateTo('home-page');
-                loader.style.display = 'none';
-            } else {
-                currentUser = null;
-                userData = null;
-                showMainPage('auth-section');
-            }
+
+        // NEW function to initialize the app state without authentication
+        async function initializeAppState() {
+            loader.style.display = 'flex';
+            getLocalUserId();
+            await loadLocalUserData();
+            await fetchAppConfig();
+            updateUI();
+            showMainPage('app-container');
+            navigateTo('home-page');
+            loader.style.display = 'none';
         }
 
-        async function fetchUserData() {
-            if (!currentUser) return;
-            const userRef = doc(db, "users", currentUser.uid);
+        // Modified function to load/create anonymous user data in Firestore
+        async function loadLocalUserData() {
+            const userRef = doc(db, "users", localUserId);
             try {
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
                     userData = userSnap.data();
                 } else {
                     const ownReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                    
+                    // Use Telegram user data if available
+                    let name = 'Guest User';
+                    let email = 'anonymous@local.com';
+
+                    if(tg && tg.initDataUnsafe.user) {
+                         name = tg.initDataUnsafe.user.first_name + (tg.initDataUnsafe.user.last_name ? ` ${tg.initDataUnsafe.user.last_name}` : '');
+                         email = tg.initDataUnsafe.user.username ? `@${tg.initDataUnsafe.user.username}` : `tg-id:${tg.initDataUnsafe.user.id}`;
+                    }
+
                     const defaultUserData = {
-                        uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], email: currentUser.email,
-                        balance: 50, referralCode: ownReferralCode, referredBy: null,
+                        uid: localUserId, 
+                        name: name, 
+                        email: email,
+                        balance: 50, 
+                        referralCode: ownReferralCode, 
+                        referredBy: null,
                         lastNotificationCheck: new Date(),
                         createdAt: serverTimestamp(),
-                        dailyAdCount: 0, lastAdWatchDate: new Date().toISOString().split('T')[0], isBlocked: false
+                        dailyAdCount: 0, 
+                        lastAdWatchDate: new Date().toISOString().split('T')[0], 
+                        isBlocked: false
                     };
                     await setDoc(userRef, defaultUserData);
                     userData = defaultUserData;
                 }
             } catch (error) {
-                console.error("Error fetching user data:", error);
-                showAlert("Error loading user data.");
+                console.error("Error loading user data:", error);
+                showAlert("Error loading user data. Your progress might not be saved.");
+                // Fallback to minimal data if Firestore fails
+                if (!userData.uid) {
+                     const ownReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                     userData = { uid: localUserId, name: 'Guest User', email: 'anonymous@local.com', balance: 0, referralCode: ownReferralCode, dailyAdCount: 0, lastAdWatchDate: new Date().toISOString().split('T')[0] };
+                }
             }
         }
-
+        
         async function fetchAppConfig() {
             const configRef = doc(db, "config", "main");
             try {
@@ -293,12 +318,12 @@
         }
         
         function updateUI() {
-            if (!userData) return;
+            if (!userData.uid) return;
             const balance = userData.balance || 0;
             coinBalanceEl.textContent = balance;
             walletCoinBalanceEl.textContent = balance;
-            profileNameEl.textContent = userData.name || 'No Name';
-            profileEmailEl.textContent = userData.email || 'No Email';
+            profileNameEl.textContent = userData.name || 'Guest User';
+            profileEmailEl.textContent = userData.email || 'anonymous@local.com';
             referralCodeEl.textContent = userData.referralCode || '...';
             minWithdrawalInfoEl.textContent = `${appConfig.minWithdrawal || 5000} Coins`;
             coinValueInfoEl.textContent = `${appConfig.coinValueCoins || 1000} Coins = ₹${appConfig.coinValueInr || 10}`;
@@ -345,16 +370,12 @@
 
             // Load specific data when navigating to a page
             if (pageId === 'wallet-page') loadWithdrawalHistory();
-            if (pageId === 'leaderboard-page') loadLeaderboard(); // NEW
+            if (pageId === 'leaderboard-page') loadLeaderboard(); 
+            if (pageId === 'notifications-page') loadNotifications();
         }
         window.navigateTo = navigateTo;
 
         function setupEventListeners() {
-            document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').classList.add('hidden'); document.getElementById('signup-view').classList.remove('hidden'); });
-            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('signup-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); });
-            document.getElementById('signup-btn').addEventListener('click', handleSignup);
-            document.getElementById('login-btn').addEventListener('click', handleLogin);
-            document.getElementById('logout-btn').addEventListener('click', handleLogout);
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -368,50 +389,6 @@
             document.getElementById('home-withdraw-btn').addEventListener('click', () => navigateTo('wallet-page'));
             document.getElementById('apply-referral-btn').addEventListener('click', handleApplyReferralCode);
             withdrawMethodSelect.addEventListener('change', updateDynamicPaymentFields);
-        }
-
-        async function handleSignup() {
-            const name = document.getElementById('signup-name').value;
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            if (!name || !email || !password) return showAlert("Please fill all fields.");
-            loader.style.display = 'flex';
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                // The onAuthStateChanged listener will handle the rest, but we update the name here
-                await updateDoc(doc(db, "users", userCredential.user.uid), { name: name });
-            } catch (error) {
-                showAlert(error.message);
-            } finally {
-                loader.style.display = 'none';
-            }
-        }
-
-        async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            if (!email || !password) return showAlert("Please enter email and password.");
-            loader.style.display = 'flex';
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                showAlert(error.message);
-            } finally {
-                loader.style.display = 'none';
-            }
-        }
-
-        async function handleLogout() { await signOut(auth); }
-        
-        async function checkNewNotifications() {
-            const lastCheck = userData.lastNotificationCheck;
-            if (!lastCheck || typeof lastCheck.seconds === 'undefined') {
-                console.log("lastNotificationCheck is not a valid timestamp yet. Skipping check.");
-                return;
-            }
-            const q = query(collection(db, "notifications"), where("createdAt", ">", lastCheck), limit(1));
-            const querySnapshot = await getDocs(q);
-            notificationDot.style.display = querySnapshot.empty ? 'none' : 'block';
         }
 
         async function loadNotifications() {
@@ -431,14 +408,12 @@
                     const date = msg.createdAt ? msg.createdAt.toDate().toLocaleDateString() : 'N/A';
                     listEl.innerHTML += `<div class="card-bg p-4 rounded-lg"><div class="flex justify-between items-center mb-1"><h3 class="font-bold">${msg.title}</h3><p class="text-xs text-gray-400">${date}</p></div><p class="text-sm text-gray-300">${msg.message}</p></div>`;
                 });
-                await updateDoc(doc(db, "users", currentUser.uid), { lastNotificationCheck: serverTimestamp() });
             } catch (error) {
                 console.error("Error loading notifications:", error);
                 listEl.innerHTML = '<p class="text-red-400">Error loading notifications.</p>';
             }
         }
 
-        // Leaderboard Function - NEW
         async function loadLeaderboard() {
             const leaderboardList = document.getElementById('leaderboard-list');
             leaderboardList.innerHTML = '<p class="text-gray-400 text-center">Loading leaderboard...</p>';
@@ -456,7 +431,8 @@
                 querySnapshot.forEach(doc => {
                     rank++;
                     const user = doc.data();
-                    const isCurrentUser = user.uid === currentUser.uid;
+                    // Use localUserId for comparison
+                    const isCurrentUser = user.uid === localUserId; 
                     let rankIcon = rank;
                     let rankClass = 'text-gray-400';
 
@@ -472,12 +448,13 @@
                     }
 
                     const itemClass = isCurrentUser ? 'border-accent border-2' : 'card-bg';
+                    const userName = user.name || 'User';
 
                     leaderboardList.innerHTML += `
                         <div class="${itemClass} p-3 rounded-lg flex items-center justify-between">
                             <div class="flex items-center space-x-3">
                                 <span class="rank-icon ${rankClass}">${rankIcon}</span>
-                                <h3 class="font-semibold ${isCurrentUser ? 'text-accent' : ''}">${user.name || 'User'} ${isCurrentUser ? '(You)' : ''}</h3>
+                                <h3 class="font-semibold ${isCurrentUser ? 'text-accent' : ''}">${userName} ${isCurrentUser ? '(You)' : ''}</h3>
                             </div>
                             <p class="font-bold text-lg">${user.balance || 0} Coins</p>
                         </div>
@@ -493,7 +470,8 @@
         async function loadWithdrawalHistory() {
             const historyList = document.getElementById('withdrawal-history-list');
             historyList.innerHTML = '<p class="text-gray-400">Loading history...</p>';
-            const q = query(collection(db, "withdrawals"), where("userId", "==", currentUser.uid), orderBy("requestedAt", "desc"));
+            // Use localUserId for fetching history
+            const q = query(collection(db, "withdrawals"), where("userId", "==", localUserId), orderBy("requestedAt", "desc"));
             try {
                 const querySnapshot = await getDocs(q);
                 if (querySnapshot.empty) {
@@ -540,7 +518,7 @@
                     
                     // Atomically increment referrer balance and update self balance and referredBy
                     await updateDoc(referrerRef, { balance: (referrerData.balance || 0) + 100 });
-                    const newUserRef = doc(db, "users", currentUser.uid);
+                    const newUserRef = doc(db, "users", localUserId);
                     await updateDoc(newUserRef, { balance: (userData.balance || 0) + 100, referredBy: referrerCode });
                     
                     userData.balance += 100; userData.referredBy = referrerCode;
@@ -556,9 +534,10 @@
         }
 
         async function updateBalance(amount) {
-            if (!currentUser) return;
+            if (!localUserId) return;
             const newBalance = (userData.balance || 0) + amount;
-            const userRef = doc(db, "users", currentUser.uid);
+            // Use localUserId for update
+            const userRef = doc(db, "users", localUserId); 
             await updateDoc(userRef, { balance: newBalance });
             userData.balance = newBalance;
             updateUI();
@@ -580,8 +559,14 @@
             try {
                 await updateBalance(-amount);
                 await addDoc(collection(db, "withdrawals"), {
-                    userId: currentUser.uid, userName: userData.name, userEmail: userData.email,
-                    amount: amount, method: method, paymentDetail: paymentDetail, status: "pending", requestedAt: serverTimestamp()
+                    userId: localUserId, 
+                    userName: userData.name || 'Guest User', 
+                    userEmail: userData.email || 'anonymous@local.com',
+                    amount: amount, 
+                    method: method, 
+                    paymentDetail: paymentDetail, 
+                    status: "pending", 
+                    requestedAt: serverTimestamp()
                 });
                 showAlert("Withdrawal request submitted successfully!");
                 document.getElementById('withdraw-amount').value = '';
@@ -609,15 +594,22 @@
             if (navigator.share) {
                 navigator.share({ title: 'Join CashReward!', text: text, url: window.location.href })
                     .catch((error) => console.error("Share failed:", error));
-            } else {
+            } else if (tg) {
+                // Use Telegram's built-in sharing for Mini Apps
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`);
+            }
+             else {
                 copyReferralCode();
                 showAlert("Share feature is not available. Referral code has been copied instead!");
             }
         }
 
         window.claimReward = async function(taskType) {
+            if (!userData.uid) return showAlert("App not fully initialized. Please reload.");
+
             const today = new Date().toISOString().split('T')[0];
-            const userRef = doc(db, "users", currentUser.uid);
+            // Use localUserId for userRef
+            const userRef = doc(db, "users", localUserId); 
 
             if (userData.lastAdWatchDate !== today) {
                 await updateDoc(userRef, { dailyAdCount: 0, lastAdWatchDate: today });
@@ -629,17 +621,35 @@
                 return showAlert("You have reached your daily ad watch limit.");
             }
             
-            if (typeof window.show_9356525 !== 'function') {
+            let adPromise;
+            
+            // Check availability based on task type
+            if (taskType === 'inApp') {
+                 if (typeof window.show_9299851 !== 'function') {
+                    return showAlert("Video ad service is currently unavailable. Please try again later.");
+                }
+            } else if (typeof window.show_9356525 !== 'function') {
                 return showAlert("Ad service is currently unavailable. Please try again later.");
             }
             
-            let adPromise;
             loader.style.display = 'flex';
             try {
                  switch(taskType) {
                     case 'interstitial': adPromise = window.show_9356525(); break;
                     case 'popup': adPromise = window.show_9356525('pop'); break;
-                    case 'inApp': adPromise = window.show_9356525({ type: 'inApp', inAppSettings: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false } }); break;
+                    // UPDATED 'inApp' CASE TO USE show_9299851 WITH SPECIFIC SETTINGS
+                    case 'inApp': 
+                        adPromise = window.show_9299851({ 
+                            type: 'inApp', 
+                            inAppSettings: { 
+                                frequency: 2, 
+                                capping: 0.1, 
+                                interval: 30, 
+                                timeout: 5, 
+                                everyPage: false 
+                            } 
+                        }); 
+                        break;
                     case 'miniApp': adPromise = window.show_9356525(); break;
                     default: return;
                 }
