@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Earners - CashReward</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #121212; color: #ffffff; }
+        .dark-bg { background-color: #121212; }
+        .card-bg { background-color: #1e1e1e; }
+        .border-accent { border-color: #ff8c00; }
+        .text-accent { color: #ff8c00; }
+        .rank-1 { color: #ffd700; } /* Gold */
+        .rank-2 { color: #c0c0c0; } /* Silver */
+        .rank-3 { color: #cd7f32; } /* Bronze */
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen">
+    <!-- Main App -->
+    <div id="app-container" class="min-h-screen flex-col">
+        <header class="flex items-center justify-between p-4 sticky top-0 bg-opacity-80 backdrop-blur-md z-10 dark-bg">
+            <a href="index.html" class="flex items-center text-gray-400">
+                <i data-lucide="arrow-left" class="w-5 h-5 mr-1"></i>
+                <span>Back</span>
+            </a>
+            <h1 class="text-xl font-bold">Top Earners</h1>
+            <div class="w-10"></div> <!-- Spacer for balance -->
+        </header>
+
+        <main class="flex-grow p-4">
+            <h2 class="text-xl font-bold text-center mb-6">🏆 Top Earners Leaderboard</h2>
+            <div id="leaderboard-list" class="space-y-3">
+                <div class="card-bg p-3 rounded-lg flex items-center justify-between border-2 border-accent">
+                    <div class="flex items-center space-x-3">
+                        <span class="rank-1 text-xl">🥇</span>
+                        <h3 class="font-semibold text-accent">You (Current User)</h3>
+                    </div>
+                    <p class="font-bold text-lg">150 Coins</p>
+                </div>
+                <div class="card-bg p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="rank-1 text-xl">🥇</span>
+                        <h3 class="font-semibold">CryptoMaster</h3>
+                    </div>
+                    <p class="font-bold text-lg">12,450 Coins</p>
+                </div>
+                <div class="card-bg p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="rank-2 text-xl">🥈</span>
+                        <h3 class="font-semibold">CoinCollector</h3>
+                    </div>
+                    <p class="font-bold text-lg">9,870 Coins</p>
+                </div>
+                <div class="card-bg p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="rank-3 text-xl">🥉</span>
+                        <h3 class="font-semibold">RewardHunter</h3>
+                    </div>
+                    <p class="font-bold text-lg">7,650 Coins</p>
+                </div>
+                <div class="card-bg p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-gray-400 font-bold">4</span>
+                        <h3 class="font-semibold">AdWatcher</h3>
+                    </div>
+                    <p class="font-bold text-lg">6,120 Coins</p>
+                </div>
+                <div class="card-bg p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-gray-400 font-bold">5</span>
+                        <h3 class="font-semibold">MoneyMaker</h3>
+                    </div>
+                    <p class="font-bold text-lg">5,430 Coins</p>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center text-gray-400">
+                <p>Complete more tasks to climb the leaderboard!</p>
+            </div>
+        </main>
+
+        <nav class="sticky bottom-0 grid grid-cols-4 items-center text-center py-2 card-bg">
+            <a href="index.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="home" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Home</span>
+            </a>
+            <a href="top_earner.html" class="flex flex-col items-center text-center py-2 text-accent">
+                <i data-lucide="trophy" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Top Earners</span>
+            </a>
+            <a href="wallet.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="wallet" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Wallet</span>
+            </a>
+            <a href="refer_earn.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="users" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Refer & Earn</span>
+            </a>
+        </nav>
+    </div>
+
+    <script>
+        // Telegram Web App initialization
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+        
+        window.onload = () => {
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
