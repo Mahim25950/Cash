@@ -31,13 +31,13 @@
     </style>
 </head>
 <body class="max-w-md mx-auto min-h-screen">
-    <!-- Loader -->
+    <!-- Loader - Initially visible -->
     <div id="loader" class="fixed inset-0 dark-bg bg-opacity-75 flex items-center justify-center z-50">
         <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent"></div>
     </div>
 
-    <!-- Main App -->
-    <div id="app-container" class="min-h-screen flex-col">
+    <!-- Main App - Initially hidden -->
+    <div id="app-container" class="min-h-screen flex-col hidden">
         <header class="flex items-center justify-between p-4 sticky top-0 bg-opacity-80 backdrop-blur-md z-10 dark-bg">
             <h1 class="text-xl font-bold">CashReward</h1>
             <div class="flex items-center space-x-4">
@@ -117,130 +117,193 @@
     </div>
 
     <script>
-        // Telegram Web App initialization
-        const tg = window.Telegram.WebApp;
-        
-        // Initialize the app
-        tg.expand();
-        tg.ready();
-        
-        // Get Telegram user data
-        const user = tg.initDataUnsafe?.user;
-        const userId = user?.id || Math.random().toString(36).substring(2);
-        const userName = user?.first_name || 'Telegram User';
-        
+        // Initialize variables
         let userData = null;
         let appConfig = {};
 
         const loader = document.getElementById('loader');
+        const appContainer = document.getElementById('app-container');
         const coinBalanceEl = document.getElementById('coin-balance');
         const adsLeftCountEl = document.getElementById('ads-left-count');
         const notificationDot = document.getElementById('notification-dot');
 
+        // Initialize the app
         window.onload = async () => {
+            // Initialize icons first
             lucide.createIcons();
+            
+            // Set up event listeners
             setupEventListeners();
+            
+            // Initialize user data
             await initializeUser();
+            
+            // Update UI
             updateUI();
-            loader.classList.add('hidden');
+            
+            // Hide loader and show app
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+            }, 1000);
         };
 
+        // Initialize user data
         async function initializeUser() {
-            // In a real implementation, you would fetch user data from your backend
-            // For demo purposes, we'll create a mock user
-            userData = {
-                uid: userId,
-                name: userName,
-                balance: 150,
-                referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-                dailyAdCount: 0,
-                lastAdWatchDate: new Date().toISOString().split('T')[0],
-                isBlocked: false
-            };
+            // Check if we have existing user data in localStorage
+            const savedUserData = localStorage.getItem('userData');
+            const savedAppConfig = localStorage.getItem('appConfig');
             
-            appConfig = {
-                minWithdrawal: 5000,
-                paymentMethods: ["UPI", "bKash"],
-                dailyAdLimit: 10,
-                coinValueCoins: 1000,
-                coinValueInr: 10
-            };
+            if (savedUserData) {
+                userData = JSON.parse(savedUserData);
+            } else {
+                // Create new user data
+                userData = {
+                    uid: 'user_' + Math.random().toString(36).substring(2, 9),
+                    name: 'Telegram User',
+                    balance: 150,
+                    referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+                    dailyAdCount: 0,
+                    lastAdWatchDate: new Date().toISOString().split('T')[0],
+                    isBlocked: false,
+                    referrals: 0,
+                    referralEarnings: 0
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('userData', JSON.stringify(userData));
+            }
             
-            // Save to localStorage for demo
-            localStorage.setItem('userData', JSON.stringify(userData));
-            localStorage.setItem('appConfig', JSON.stringify(appConfig));
+            if (savedAppConfig) {
+                appConfig = JSON.parse(savedAppConfig);
+            } else {
+                // Set default app config
+                appConfig = {
+                    minWithdrawal: 5000,
+                    paymentMethods: ["UPI", "bKash"],
+                    dailyAdLimit: 10,
+                    coinValueCoins: 1000,
+                    coinValueInr: 10
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('appConfig', JSON.stringify(appConfig));
+            }
         }
 
+        // Update UI with user data
         function updateUI() {
             if (!userData) return;
+            
             const balance = userData.balance || 0;
             coinBalanceEl.textContent = balance.toLocaleString();
             updateAdsLeftCount();
         }
 
+        // Update ads left count
         function updateAdsLeftCount() {
+            if (!userData) return;
+            
             const today = new Date().toISOString().split('T')[0];
             if (userData.lastAdWatchDate !== today) {
                 userData.dailyAdCount = 0;
+                userData.lastAdWatchDate = today;
+                localStorage.setItem('userData', JSON.stringify(userData));
             }
+            
             const adsLeft = Math.max(0, (appConfig.dailyAdLimit || 10) - (userData.dailyAdCount || 0));
             adsLeftCountEl.textContent = adsLeft;
         }
 
+        // Set up event listeners
         function setupEventListeners() {
+            // Withdraw button
             document.getElementById('home-withdraw-btn').addEventListener('click', () => {
                 window.location.href = 'wallet.html';
             });
             
+            // Alert OK button
             document.getElementById('alert-ok-btn').addEventListener('click', () => {
                 document.getElementById('custom-alert').classList.add('hidden');
             });
             
+            // Notification bell
             document.getElementById('notification-bell').addEventListener('click', () => {
                 showAlert("No new notifications");
             });
         }
 
+        // Claim reward function
         window.claimReward = async function(taskType) {
             const today = new Date().toISOString().split('T')[0];
 
+            // Reset daily count if it's a new day
             if (userData.lastAdWatchDate !== today) {
                 userData.dailyAdCount = 0;
                 userData.lastAdWatchDate = today;
             }
 
+            // Check daily limit
             if (userData.dailyAdCount >= (appConfig.dailyAdLimit || 10)) {
                 return showAlert("You have reached your daily ad watch limit.");
             }
             
+            // Check if ad service is available
             if (typeof window.show_9356525 !== 'function') {
                 return showAlert("Ad service is currently unavailable. Please try again later.");
             }
             
             let adPromise;
             loader.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+            
             try {
-                 switch(taskType) {
-                    case 'interstitial': adPromise = window.show_9356525(); break;
-                    case 'popup': adPromise = window.show_9356525('pop'); break;
-                    case 'inApp': adPromise = window.show_9356525({ type: 'inApp', inAppSettings: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false } }); break;
-                    case 'miniApp': adPromise = window.show_9356525(); break;
-                    default: return;
+                // Show ad based on task type
+                switch(taskType) {
+                    case 'interstitial': 
+                        adPromise = window.show_9356525(); 
+                        break;
+                    case 'popup': 
+                        adPromise = window.show_9356525('pop'); 
+                        break;
+                    case 'inApp': 
+                        adPromise = window.show_9356525({ 
+                            type: 'inApp', 
+                            inAppSettings: { 
+                                frequency: 2, 
+                                capping: 0.1, 
+                                interval: 30, 
+                                timeout: 5, 
+                                everyPage: false 
+                            } 
+                        }); 
+                        break;
+                    case 'miniApp': 
+                        adPromise = window.show_9356525(); 
+                        break;
+                    default: 
+                        return;
                 }
                 
+                // Wait for ad to complete
                 await adPromise;
 
+                // Update user data
                 userData.dailyAdCount = (userData.dailyAdCount || 0) + 1;
                 
+                // Calculate reward amount
                 let rewardAmount = 0;
                 if (taskType === 'miniApp') rewardAmount = 100;
                 else if (taskType !== 'inApp') rewardAmount = 50;
 
+                // Add reward to balance
                 if (rewardAmount > 0) {
                     userData.balance += rewardAmount;
                     updateUI();
                     showAlert(`Congratulations! You have won ${rewardAmount} coins.`);
                 }
+                
+                // Update ads left count
                 updateAdsLeftCount();
 
                 // Save updated user data
@@ -250,10 +313,13 @@
                 console.error("Ad error:", e);
                 showAlert('Could not show ad. Please try again later.');
             } finally {
+                // Hide loader and show app again
                 loader.classList.add('hidden');
+                appContainer.classList.remove('hidden');
             }
         }
 
+        // Show alert function
         function showAlert(message) {
             document.getElementById('alert-message').textContent = message;
             document.getElementById('custom-alert').classList.remove('hidden');
