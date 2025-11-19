@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refer & Earn - CashReward</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #121212; color: #ffffff; }
+        .dark-bg { background-color: #121212; }
+        .card-bg { background-color: #1e1e1e; }
+        .border-accent { border-color: #ff8c00; }
+        .text-accent { color: #ff8c00; }
+        .btn, .btn-accent, .btn-outline-accent { transition: all 0.2s ease-in-out; transform: scale(1); }
+        .btn:active, .btn-accent:active, .btn-outline-accent:active { transform: scale(0.95); }
+        .btn-accent { background-color: #ff8c00; color: #121212; font-weight: bold; }
+        .btn-accent:hover { background-color: #e67e00; }
+        .btn-outline-accent { border: 1px solid #ff8c00; color: #ff8c00; }
+        .btn-outline-accent:hover { background-color: #ff8c00; color: #121212; }
+        .input-field { background-color: #2c2c2c; border: 1px solid #444; }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen">
+    <!-- Loader -->
+    <div id="loader" class="hidden fixed inset-0 dark-bg bg-opacity-75 flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent"></div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container" class="min-h-screen flex-col">
+        <header class="flex items-center justify-between p-4 sticky top-0 bg-opacity-80 backdrop-blur-md z-10 dark-bg">
+            <a href="index.html" class="flex items-center text-gray-400">
+                <i data-lucide="arrow-left" class="w-5 h-5 mr-1"></i>
+                <span>Back</span>
+            </a>
+            <h1 class="text-xl font-bold">Refer & Earn</h1>
+            <div class="w-10"></div> <!-- Spacer for balance -->
+        </header>
+
+        <main class="flex-grow p-4 space-y-6">
+            <h2 class="text-xl font-bold text-center">Refer & Earn</h2>
+            <div class="card-bg p-6 rounded-lg text-center">
+                <p class="text-gray-400 mb-2">Your Referral Code</p>
+                <div class="bg-gray-800 p-3 rounded-lg flex items-center justify-center mb-4">
+                    <span id="referral-code" class="text-2xl font-bold tracking-widest">ABCDEF</span>
+                    <button id="copy-code-btn" class="ml-4"><i data-lucide="copy" class="w-6 h-6 text-gray-400"></i></button>
+                </div>
+                <p class="text-sm text-gray-300">Share the code with your friends.</p>
+                <p class="text-sm text-accent font-semibold mt-2">Earn 100 coins for each successful referral!</p>
+            </div>
+            <button id="share-btn" class="w-full p-3 rounded-lg btn-accent">Share Your Code</button>
+            
+            <div class="card-bg p-4 rounded-lg mt-6">
+                <h3 class="font-semibold mb-3 text-center">Have a Referral Code?</h3>
+                <input id="enter-referral-code" type="text" placeholder="Enter code here" class="w-full p-3 rounded-lg input-field mb-3">
+                <button id="apply-referral-btn" class="w-full p-3 rounded-lg btn-outline-accent">Apply Code</button>
+            </div>
+            
+            <div class="card-bg p-4 rounded-lg">
+                <h3 class="font-semibold mb-3 text-center">Referral Stats</h3>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                        <p class="text-2xl font-bold text-accent" id="referrals-count">0</p>
+                        <p class="text-sm text-gray-400">Total Referrals</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold text-accent" id="referral-earnings">0</p>
+                        <p class="text-sm text-gray-400">Coins Earned</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <nav class="sticky bottom-0 grid grid-cols-4 items-center text-center py-2 card-bg">
+            <a href="index.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="home" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Home</span>
+            </a>
+            <a href="top_earner.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="trophy" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Top Earners</span>
+            </a>
+            <a href="wallet.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="wallet" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Wallet</span>
+            </a>
+            <a href="refer_earn.html" class="flex flex-col items-center text-center py-2 text-accent">
+                <i data-lucide="users" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Refer & Earn</span>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Custom Alert -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-sm text-center">
+            <p id="alert-message" class="mb-4"></p>
+            <button id="alert-ok-btn" class="btn-accent px-6 py-2 rounded-lg">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Telegram Web App initialization
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+        
+        let userData = null;
+
+        const loader = document.getElementById('loader');
+        const referralCodeEl = document.getElementById('referral-code');
+        const referralsCountEl = document.getElementById('referrals-count');
+        const referralEarningsEl = document.getElementById('referral-earnings');
+
+        window.onload = () => {
+            lucide.createIcons();
+            setupEventListeners();
+            loadUserData();
+            updateUI();
+        };
+
+        function loadUserData() {
+            // Load from localStorage for demo
+            const savedUserData = localStorage.getItem('userData');
+            userData = savedUserData ? JSON.parse(savedUserData) : { 
+                referralCode: 'ABCDEF',
+                referrals: 0,
+                referralEarnings: 0
+            };
+        }
+
+        function updateUI() {
+            if (!userData) return;
+            referralCodeEl.textContent = userData.referralCode || 'ABCDEF';
+            referralsCountEl.textContent = userData.referrals || 0;
+            referralEarningsEl.textContent = userData.referralEarnings || 0;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('copy-code-btn').addEventListener('click', copyReferralCode);
+            document.getElementById('share-btn').addEventListener('click', shareReferralCode);
+            document.getElementById('apply-referral-btn').addEventListener('click', handleApplyReferralCode);
+            document.getElementById('alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert').classList.add('hidden');
+            });
+        }
+
+        function copyReferralCode() {
+            const textToCopy = referralCodeEl.textContent;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showAlert("Referral code copied!");
+            }).catch(err => {
+                showAlert("Failed to copy code.");
+            });
+        }
+        
+        function shareReferralCode() {
+            const text = `Join CashReward and earn money! Use my referral code to get a bonus: ${userData.referralCode}`;
+            if (navigator.share) {
+                navigator.share({ title: 'Join CashReward!', text: text, url: window.location.href })
+                    .catch((error) => console.error("Share failed:", error));
+            } else {
+                copyReferralCode();
+                showAlert("Share feature is not available. Referral code has been copied instead!");
+            }
+        }
+
+        async function handleApplyReferralCode() {
+            const codeInput = document.getElementById('enter-referral-code');
+            const code = codeInput.value.trim().toUpperCase();
+            
+            if (!code) return showAlert("Please enter a code.");
+            if (code === userData.referralCode) return showAlert("You cannot use your own code.");
+            
+            loader.classList.remove('hidden');
+            
+            // Simulate API call
+            setTimeout(() => {
+                userData.balance = (userData.balance || 0) + 100;
+                userData.referralEarnings = (userData.referralEarnings || 0) + 100;
+                showAlert("Code applied successfully! You have received 100 coins.");
+                codeInput.value = '';
+                
+                // Save updated user data
+                localStorage.setItem('userData', JSON.stringify(userData));
+                updateUI();
+                
+                loader.classList.add('hidden');
+            }, 1500);
+        }
+
+        function showAlert(message) {
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('custom-alert').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
