@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet - CashReward</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #121212; color: #ffffff; }
+        .dark-bg { background-color: #121212; }
+        .card-bg { background-color: #1e1e1e; }
+        .border-accent { border-color: #ff8c00; }
+        .text-accent { color: #ff8c00; }
+        .btn, .btn-accent, .btn-outline-accent { transition: all 0.2s ease-in-out; transform: scale(1); }
+        .btn:active, .btn-accent:active, .btn-outline-accent:active { transform: scale(0.95); }
+        .btn-accent { background-color: #ff8c00; color: #121212; font-weight: bold; }
+        .btn-accent:hover { background-color: #e67e00; }
+        .input-field { background-color: #2c2c2c; border: 1px solid #444; }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen">
+    <!-- Loader -->
+    <div id="loader" class="hidden fixed inset-0 dark-bg bg-opacity-75 flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent"></div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container" class="min-h-screen flex-col">
+        <header class="flex items-center justify-between p-4 sticky top-0 bg-opacity-80 backdrop-blur-md z-10 dark-bg">
+            <a href="index.html" class="flex items-center text-gray-400">
+                <i data-lucide="arrow-left" class="w-5 h-5 mr-1"></i>
+                <span>Back</span>
+            </a>
+            <h1 class="text-xl font-bold">My Wallet</h1>
+            <div class="w-10"></div> <!-- Spacer for balance -->
+        </header>
+
+        <main class="flex-grow p-4 space-y-6">
+            <h2 class="text-xl font-bold text-center">My Wallet</h2>
+            <div class="card-bg p-4 rounded-lg">
+                <h3 class="font-semibold mb-3">Withdraw Earnings</h3>
+                <p class="text-sm text-gray-400 mb-1">Current Balance: <span class="font-bold text-accent"><span id="wallet-coin-balance">0</span> Coins</span></p>
+                <p class="text-sm text-gray-400 mb-2">Minimum Withdrawal: <span id="min-withdrawal-info">5,000</span> Coins</p>
+                <p class="text-sm text-gray-400 mb-4 font-semibold" id="coin-value-info">1,000 Coins = ₹10</p>
+                <input id="withdraw-amount" type="number" placeholder="Enter coin amount" class="w-full p-3 rounded-lg input-field mb-3">
+                <select id="withdraw-method" class="w-full p-3 rounded-lg input-field mb-3">
+                    <option value="UPI">UPI</option>
+                    <option value="bKash">bKash</option>
+                    <option value="PayPal">PayPal</option>
+                </select>
+                <div id="payment-details-container">
+                    <input id="payment-detail-input" type="text" placeholder="Enter your UPI ID" class="w-full p-3 rounded-lg input-field">
+                </div>
+                <button id="withdraw-btn" class="w-full p-3 rounded-lg btn-accent mt-3">Request Withdrawal</button>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold mb-3">Withdrawal History</h3>
+                <div id="withdrawal-history-list" class="space-y-3">
+                    <div class="card-bg p-3 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold">5,000 Coins - UPI</p>
+                            <p class="text-xs text-gray-400">2023-11-15</p>
+                        </div>
+                        <p class="font-bold text-yellow-400 capitalize">Pending</p>
+                    </div>
+                    <div class="card-bg p-3 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold">3,000 Coins - bKash</p>
+                            <p class="text-xs text-gray-400">2023-10-28</p>
+                        </div>
+                        <p class="font-bold text-green-400 capitalize">Approved</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <nav class="sticky bottom-0 grid grid-cols-4 items-center text-center py-2 card-bg">
+            <a href="index.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="home" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Home</span>
+            </a>
+            <a href="top_earner.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="trophy" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Top Earners</span>
+            </a>
+            <a href="wallet.html" class="flex flex-col items-center text-center py-2 text-accent">
+                <i data-lucide="wallet" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Wallet</span>
+            </a>
+            <a href="refer_earn.html" class="flex flex-col items-center text-center py-2 text-gray-400">
+                <i data-lucide="users" class="mx-auto w-6 h-6"></i>
+                <span class="text-xs">Refer & Earn</span>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Custom Alert -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-sm text-center">
+            <p id="alert-message" class="mb-4"></p>
+            <button id="alert-ok-btn" class="btn-accent px-6 py-2 rounded-lg">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Telegram Web App initialization
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+        
+        let userData = null;
+        let appConfig = {};
+
+        const loader = document.getElementById('loader');
+        const walletCoinBalanceEl = document.getElementById('wallet-coin-balance');
+        const withdrawMethodSelect = document.getElementById('withdraw-method');
+        const paymentDetailsContainer = document.getElementById('payment-details-container');
+
+        window.onload = () => {
+            lucide.createIcons();
+            setupEventListeners();
+            loadUserData();
+            updateUI();
+        };
+
+        function loadUserData() {
+            // Load from localStorage for demo
+            const savedUserData = localStorage.getItem('userData');
+            const savedAppConfig = localStorage.getItem('appConfig');
+            
+            userData = savedUserData ? JSON.parse(savedUserData) : { balance: 150 };
+            appConfig = savedAppConfig ? JSON.parse(savedAppConfig) : { 
+                minWithdrawal: 5000, 
+                coinValueCoins: 1000, 
+                coinValueInr: 10 
+            };
+        }
+
+        function updateUI() {
+            if (!userData) return;
+            const balance = userData.balance || 0;
+            walletCoinBalanceEl.textContent = balance.toLocaleString();
+            
+            // Update payment method fields
+            updateDynamicPaymentFields();
+        }
+
+        function updateDynamicPaymentFields() {
+            const selectedMethod = withdrawMethodSelect.value.toLowerCase();
+            let placeholder = "Enter Details";
+            if (selectedMethod.includes('upi')) placeholder = "Enter your UPI ID";
+            if (selectedMethod.includes('bkash')) placeholder = "Enter your bKash Number";
+            if (selectedMethod.includes('paypal')) placeholder = "Enter your PayPal Email";
+            paymentDetailsContainer.innerHTML = `<input id="payment-detail-input" type="text" placeholder="${placeholder}" class="w-full p-3 rounded-lg input-field">`;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('withdraw-btn').addEventListener('click', handleWithdrawal);
+            withdrawMethodSelect.addEventListener('change', updateDynamicPaymentFields);
+            document.getElementById('alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert').classList.add('hidden');
+            });
+        }
+
+        async function handleWithdrawal() {
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            const method = document.getElementById('withdraw-method').value;
+            const paymentDetailInput = document.getElementById('payment-detail-input');
+            const paymentDetail = paymentDetailInput ? paymentDetailInput.value.trim() : '';
+            const minWithdrawal = appConfig.minWithdrawal || 5000;
+
+            if (!amount || amount <= 0) return showAlert("Please enter a valid amount.");
+            if (amount < minWithdrawal) return showAlert(`Minimum withdrawal is ${minWithdrawal} coins.`);
+            if (amount > userData.balance) return showAlert("Insufficient balance.");
+            if (!paymentDetail) return showAlert("Please enter payment details.");
+
+            loader.classList.remove('hidden');
+            
+            // Simulate API call
+            setTimeout(() => {
+                userData.balance -= amount;
+                updateUI();
+                showAlert("Withdrawal request submitted successfully!");
+                document.getElementById('withdraw-amount').value = '';
+                if (paymentDetailInput) paymentDetailInput.value = '';
+                
+                // Save updated user data
+                localStorage.setItem('userData', JSON.stringify(userData));
+                
+                loader.classList.add('hidden');
+            }, 1500);
+        }
+
+        function showAlert(message) {
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('custom-alert').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
